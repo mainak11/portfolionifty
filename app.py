@@ -1,4 +1,3 @@
-
 import pandas as pd
 import yfinance as yf
 import numpy as np
@@ -9,11 +8,12 @@ import numpy as np
 import plotly.express as px
 
 class Nifty50Portfolio:
-    def __init__(self, start_date, end_date):
+    def __init__(self, start_date, end_date,n_days):
         self.tickers = ['RELIANCE.NS', 'HCLTECH.NS', 'TATAMOTORS.NS', 'M&M.NS', 'EICHERMOT.NS', 'JSWSTEEL.NS', 'BAJFINANCE.NS', 'APOLLOHOSP.NS', 'WIPRO.NS', 'ADANIENT.NS']
         self.benchmark_ticker = '^NSEI'
         self.start_date = start_date
         self.end_date = end_date
+        self.n_days = n_days
 
     def download_data(self, ticker):
         data = yf.download(ticker, start=self.start_date, end=self.end_date)
@@ -29,7 +29,7 @@ class Nifty50Portfolio:
         return portfolio
 
     def active_stock_selection_strategy(self, portfolio):
-        selected_stocks = portfolio.pct_change().mean(axis=1) > 0
+        selected_stocks = portfolio.pct_change().mean(axis=1).rolling(window=self.n_days).sum() > 0
         return selected_stocks
 
     def compare_with_benchmark(self, portfolio, benchmark_data):
@@ -79,18 +79,21 @@ st.title("Portfolio out of Nifty50 Stocks")
 # Date input widgets
 start_date = st.date_input("Select Start Date", pd.to_datetime("2019-01-01"))
 end_date = st.date_input("Select End Date", pd.to_datetime("2022-12-31"))
+n_day = int(st.number_input("Select no of Day",30))
 
-nifty_portfolio = Nifty50Portfolio(start_date, end_date)
+nifty_portfolio = Nifty50Portfolio(start_date, end_date,n_day)
 
 # Create Portfolio
 portfolio_data = nifty_portfolio.create_portfolio()
 
 # Download Benchmark Data
 benchmark_data = nifty_portfolio.download_data(nifty_portfolio.benchmark_ticker)
-
+# st.dataframe(benchmark_data)
+st.subheader('Stocks that are selected for the sample strategy')
+st.text(['RELIANCE.NS', 'HCLTECH.NS', 'TATAMOTORS.NS', 'M&M.NS', 'EICHERMOT.NS', 'JSWSTEEL.NS', 'BAJFINANCE.NS', 'APOLLOHOSP.NS', 'WIPRO.NS', 'ADANIENT.NS'])
 # Implement Active Stock Selection Strategy
 selected_stocks = nifty_portfolio.active_stock_selection_strategy(portfolio_data)
-
+# st.dataframe(portfolio_data[selected_stocks])
 # Compare with Benchmark
 portfolio_returns, benchmark_returns = nifty_portfolio.compare_with_benchmark(portfolio_data[selected_stocks], benchmark_data)
 
